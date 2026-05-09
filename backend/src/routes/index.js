@@ -6,11 +6,13 @@ const productRoutes = require('./productRoutes');
 const categoryRoutes = require('./categoryRoutes');
 const productUnitRoutes = require('./productUnitRoutes');
 const productPriceRoutes = require('./productPriceRoutes');
+const orderRoutes = require('./orderRoutes');
 
 router.use('/auth', authRoutes);
 router.use('/products', productRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/product-units', productUnitRoutes);
 router.use('/product-prices', productPriceRoutes);
+router.use('/orders', orderRoutes);
 
 module.exports = router;
