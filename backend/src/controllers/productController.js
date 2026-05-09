@@ -1,52 +1,66 @@
-const { db, Product, ProductUnit, ProductPrice, Category, StockLog } = require('../models');
+const { sequelize, Product, ProductUnit, ProductPrice, Category, StockLog } = require('../models');
 const { successResponse, errorResponse } = require('../utils');
 const { Op } = require('sequelize');
 
 const createProduct = async (req, res) => {
-    const t = await db.transaction();
+    const t = await sequelize.transaction();
     try {
         const {
-            category_id, sku, name, description, base_price,
-            current_stock_in_pcs, min_stock_limit, units
+            category_id, sku, name,
+            description, base_price, current_stock_in_pcs,
+            min_stock_limit, units
         } = req.body;
 
+        // 1. Create Product
         const product = await Product.create({
-            category_id, sku, name, description, base_price,
-            current_stock_in_pcs, min_stock_limit
+            category_id: parseInt(category_id),
+            sku: sku,
+            name: name,
+            description: description || '',
+            base_price: parseFloat(base_price) || 0,
+            current_stock_in_pcs: parseInt(current_stock_in_pcs) || 0,
+            min_stock_limit: parseInt(min_stock_limit) || 0
         }, { transaction: t });
 
-        if (units && units.length > 0) {
-            for (const unitItem of units) {
-                const unit = await ProductUnit.create({
-                    product_id: product.id,
-                    unit_name: unitItem.unit_name,
-                    conversion_factor: unitItem.conversion_factor,
-                    is_default_selling: unitItem.is_default_selling || false
-                }, { transaction: t });
+        // 2. Create Units & Prices
+        for (const [index, item] of units.entries()) {
+            const unit = await ProductUnit.create({
+                product_id: product.id,
+                unit_name: item.unit_name,
+                conversion_factor: parseInt(item.conversion_factor),
+                is_default_selling: item.is_default_selling
+            }, { transaction: t });
 
-                if (unitItem.prices && unitItem.prices.length > 0) {
-                    const priceData = unitItem.prices.map(p => ({
-                        unit_id: unit.id,
-                        price: p.price,
-                        min_qty: p.min_qty
-                    }));
-                    await ProductPrice.bulkCreate(priceData, { transaction: t });
-                }
-            }
+            await ProductPrice.create({
+                unit_id: unit.id,
+                price: parseFloat(item.price) || 0,
+                min_qty: 1
+            }, { transaction: t });
         }
 
         await StockLog.create({
             product_id: product.id,
             type: 'in',
-            amount_in_pcs: current_stock_in_pcs,
+            amount_in_pcs: parseInt(current_stock_in_pcs) || 0,
             reason: 'Initial Stock Entry'
         }, { transaction: t });
 
         await t.commit();
         return successResponse(res, 'Produk berhasil ditambahkan', product, 201);
+
     } catch (error) {
-        await t.rollback();
-        return errorResponse(res, error.message);
+        if (t) await t.rollback();
+
+        console.log("=== SEVERE ERROR START ===");
+        console.error(error);
+        console.log("=== SEVERE ERROR END ===");
+
+        return res.status(500).json({
+            success: false,
+            message: error.name === 'SequelizeValidationError'
+                ? error.errors.map(e => e.message).join(', ')
+                : error.message
+        });
     }
 };
 
@@ -71,7 +85,7 @@ const getAllProducts = async (req, res) => {
                     include: [{ model: ProductPrice }]
                 }
             ],
-            order: [['name', 'ASC']]
+            order: [['id', 'DESC']] // Produk terbaru muncul di atas
         });
 
         return successResponse(res, 'Daftar produk berhasil dimuat', products);
@@ -89,7 +103,11 @@ const getProductById = async (req, res) => {
                     model: ProductUnit,
                     include: [{ model: ProductPrice }]
                 },
-                { model: StockLog, limit: 10, order: [['id', 'DESC']] } // History stok terakhir
+                {
+                    model: StockLog,
+                    limit: 10,
+                    order: [['id', 'DESC']]
+                }
             ]
         });
 
@@ -104,10 +122,13 @@ const getProductById = async (req, res) => {
 };
 
 const updateProduct = async (req, res) => {
-    const t = await db.transaction();
+    const t = await sequelize.transaction();
     try {
         const product = await Product.findByPk(req.params.id);
-        if (!product) return errorResponse(res, 'Produk tidak ditemukan', 404);
+        if (!product) {
+            await t.rollback();
+            return errorResponse(res, 'Produk tidak ditemukan', 404);
+        }
 
         const { name, description, base_price, min_stock_limit, category_id } = req.body;
 
@@ -118,7 +139,7 @@ const updateProduct = async (req, res) => {
         await t.commit();
         return successResponse(res, 'Produk berhasil diperbarui', product);
     } catch (error) {
-        await t.rollback();
+        if (t) await t.rollback();
         return errorResponse(res, error.message);
     }
 };
@@ -128,6 +149,7 @@ const deleteProduct = async (req, res) => {
         const product = await Product.findByPk(req.params.id);
         if (!product) return errorResponse(res, 'Produk tidak ditemukan', 404);
 
+        // Soft delete menggunakan timestamp
         await product.update({ deleted_at: new Date() });
 
         return successResponse(res, 'Produk berhasil dihapus');
