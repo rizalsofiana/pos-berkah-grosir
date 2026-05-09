@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
-    "backend": "cd backend && npx nodemon index.js",
+    "backend": "cd backend && npx nodemon server.js",
     "frontend": "cd frontend && npm run dev"
   },
   "keywords": [],

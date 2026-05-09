@@ -46,3 +46,92 @@
 │   ├── App.jsx             # Routing & Providers
 │   └── main.jsx            # Entry point
 └── index.html
+
+auth -> /api/auth/register
+{
+  "username": "owner_berkah",
+  "password": "password123",
+  "role": "owner"
+}
+
+login (bearer) -> /api/auth/login
+
+category -> /api/categories
+{
+  "name": "Sembako"
+}
+
+product -> /api/products
+{
+  "category_id": 1,
+  "sku": "IDM-MIE-001",
+  "name": "Indomie Goreng Spesial",
+  "description": "Indomie Goreng isi 40 pcs per dus",
+  "base_price": 2800,
+  "current_stock_in_pcs": 400,
+  "min_stock_limit": 40,
+  "units": [
+    {
+      "unit_name": "Dus",
+      "conversion_factor": 40,
+      "is_default_selling": true,
+      "prices": [
+        { "price": 108000, "min_qty": 1 },
+        { "price": 105000, "min_qty": 10 }
+      ]
+    },
+    {
+      "unit_name": "Pcs",
+      "conversion_factor": 1,
+      "is_default_selling": false,
+      "prices": [
+        { "price": 3000, "min_qty": 1 },
+        { "price": 2800, "min_qty": 5 }
+      ]
+    }
+  ]
+}
+
+order -> /api/orders
+{
+  "customer_name": "Budi Santoso",
+  "customer_whatsapp": "081234567890",
+  "fulfillment_method": "pickup",
+  "payment_method": "midtrans_online",
+  "items": [
+    {
+      "product_id": 1,
+      "unit_id": 1,
+      "qty": 2,
+      "price_per_unit": 108000
+    }
+  ]
+}
+
+notification Midtrans -> /api/payments/notification
+{
+  "customer_name": "Budi Santoso",
+  "customer_whatsapp": "081234567890",
+  "fulfillment_method": "pickup",
+  "payment_method": "midtrans_online",
+  "items": [
+    {
+      "product_id": 1,
+      "unit_id": 1,
+      "qty": 2,
+      "price_per_unit": 108000
+    }
+  ]
+}
+
+riwayat / stock log -> /api/stocks?product_id=1
+
+
+src/
+├── api/          # Konfigurasi Axios
+├── components/   # UI Reusable (Button, Input, Card)
+├── context/      # AuthContext, CartContext
+├── layouts/      # Layout Admin (Sidebar + Header)
+├── pages/        # Halaman Utama (Login, Dashboard, Catalog)
+├── utils/        # Formatter Rupiah, Tanggal
+└── App.jsx
