@@ -1,5 +1,20 @@
-const { db } = require('./src/config');
+const app = require('./src/app');
+const db = require('./src/config/db');
+require('dotenv').config();
 
-db.authenticate()
-    .then(() => console.log('✅ Database connected successfully.'))
-    .catch(err => console.error('❌ Unable to connect to the database:', err));
+const PORT = process.env.PORT || 5000;
+
+const startServer = async () => {
+    try {
+        await db.authenticate();
+        console.log('✅ Database Connected: Berkah Grosir');
+
+        app.listen(PORT, () => {
+            console.log(`🚀 Server running on http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error('❌ Unable to connect to the database:', error);
+    }
+};
+
+startServer();
