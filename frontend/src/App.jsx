@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuth } from './hooks/useAuth';
 import LoginPage from './pages/LoginPage';
 import CategoryPage from './pages/CategoryPage';
+import ProductPage from './pages/ProductPage';
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -54,6 +55,15 @@ function App() {
           element={
             <ProtectedRoute>
               <CategoryPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/products"
+          element={
+            <ProtectedRoute>
+              <ProductPage />
             </ProtectedRoute>
           }
         />
