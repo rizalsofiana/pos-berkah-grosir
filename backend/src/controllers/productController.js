@@ -51,9 +51,9 @@ const createProduct = async (req, res) => {
     } catch (error) {
         if (t) await t.rollback();
 
-        console.log("=== SEVERE ERROR START ===");
+        console.log("=== SERVER ERROR START ===");
         console.error(error);
-        console.log("=== SEVERE ERROR END ===");
+        console.log("=== SERVER ERROR END ===");
 
         return res.status(500).json({
             success: false,
