@@ -15,5 +15,9 @@
   "type": "commonjs",
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "jsonwebtoken": "^9.0.3"
   }
 }
