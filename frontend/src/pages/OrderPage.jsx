@@ -100,28 +100,28 @@ export default function OrderPage() {
     const changeAmount = customerData.amount_paid - totalAmount;
 
     // --- Submit Logic ---
-    const handleSubmit = async (e, method) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (cart.length === 0) return alert("Keranjang masih kosong!");
 
         try {
             const payload = {
-                ...customerData,
-                payment_method: method,
-                amount_paid: method === 'cash' || method === 'qris_offline' ? Number(customerData.amount_paid) : 0,
+                customer_name: customerData.customer_name,
+                customer_whatsapp: customerData.customer_whatsapp,
+                fulfillment_method: customerData.fulfillment_method,
+                payment_method: customerData.payment_method,
+                amount_paid: customerData.payment_method === 'cash' || customerData.payment_method === 'qris_offline' ? Number(customerData.amount_paid) : 0,
                 items: cart.map(item => ({
                     product_id: item.product_id,
                     unit_id: item.unit_id,
-                    qty: item.qty,
-                    price_per_unit: item.price_per_unit,
-                    sub_total: item.sub_total
+                    qty: Number(item.qty),
+                    price_per_unit: Number(item.price_per_unit),
+                    sub_total: Number(item.sub_total),
+                    name: item.name
                 }))
             };
 
             const response = await createOrder(payload);
-            console.log("Full Response dari Backend:", response);
-            const orderData = response.data || response;
-            console.log("Snap Token:", orderData.snap_token);
 
             // Reset State
             const finalizeOrder = () => {
@@ -138,27 +138,23 @@ export default function OrderPage() {
             };
 
             // LOGIKA PEMBAYARAN MIDTRANS
-            if (method === 'midtrans_online' && orderData.snap_token) {
-                window.snap.pay(orderData.snap_token, {
-                    onSuccess: function (result) {
-                        alert("Pembayaran Berhasil!");
-                        finalizeOrder();
-                    },
-                    onPending: function (result) {
-                        alert("Menunggu pembayaran...");
-                        finalizeOrder();
-                    },
-                    onError: function (result) {
-                        alert("Pembayaran Gagal!");
-                    },
-                    onClose: function () {
-                        alert('Anda menutup pop-up tanpa menyelesaikan pembayaran.');
-                    }
-                });
-            } else {
-                // LOGIKA PEMBAYARAN CASH
-                alert("Order Berhasil Disimpan!");
-                finalizeOrder();
+            const result = response.data || response;
+            const token = result.snap_token || result.payment_token;
+            console.log(result);
+
+            console.log("Token yang akan digunakan Snap:", token);
+
+            if (customerData.payment_method === 'midtrans_online') {
+                if (token) {
+                    window.snap.pay(token, {
+                        onSuccess: (result) => { alert("Pembayaran Berhasil!"); finalizeOrder(); },
+                        onPending: (result) => { alert("Menunggu Pembayaran..."); finalizeOrder(); },
+                        onError: (result) => { alert("Pembayaran Gagal!"); },
+                        onClose: () => { alert('Anda menutup pop-up.'); }
+                    });
+                } else {
+                    alert("Error: Snap Token tidak ditemukan dalam response server.");
+                }
             }
         } catch (err) {
             console.error(err);
