@@ -16,7 +16,6 @@ const createOrder = async (req, res) => {
             items
         } = req.body;
 
-        // ... (kode generate invoice tetap sama)
         const todayOrderCount = await Order.count();
         const orderNumber = generateInvoiceNumber(todayOrderCount);
 
@@ -40,8 +39,12 @@ const createOrder = async (req, res) => {
 
             if (!product || !unit) throw new Error(`Produk atau Satuan tidak valid`);
 
-            const subTotal = Number(item.qty) * Number(item.price_per_unit);
-            const totalPcs = item.qty * unit.conversion_factor;
+            // 1. Pastikan harga dan qty adalah angka bulat/integer untuk Midtrans
+            const itemPrice = Math.round(Number(item.price_per_unit));
+            const itemQty = Number(item.qty);
+            const subTotal = itemPrice * itemQty; // Hitung ulang berdasarkan harga yang sudah dibulatkan
+
+            const totalPcs = itemQty * unit.conversion_factor;
 
             await updateStock(item.product_id, totalPcs, 'out', `Penjualan ${orderNumber}`, t);
 
@@ -49,33 +52,32 @@ const createOrder = async (req, res) => {
                 order_id: order.id,
                 product_id: item.product_id,
                 unit_id: item.unit_id,
-                qty: item.qty,
-                price_per_unit: item.price_per_unit,
+                qty: itemQty,
+                price_per_unit: itemPrice,
                 total_pcs: totalPcs,
                 sub_total: subTotal
             });
 
-            // Midtrans butuh harga bulat (integer)
+            // 2. Siapkan data item untuk Midtrans (Sesuai spesifikasi API mereka)
             midtransItems.push({
                 id: `PROD-${product.id}`,
-                price: Math.round(Number(item.price_per_unit)),
-                quantity: Number(item.qty),
-                name: `${product.name.substring(0, 45)}` // Nama maksimal 50 karakter
+                price: itemPrice,
+                quantity: itemQty,
+                name: (item.name || product.name).substring(0, 50)
             });
 
             totalAmount += subTotal;
         }
 
+        console.log("Midtrans items:", JSON.stringify(midtransItems, null, 2));
+        console.log("Total amount:", totalAmount);
+
         let changeAmount = 0;
-        // NORMALISASI CEK: Cash
         if (payment_method === 'cash' || payment_method === PAYMENT_METHODS.CASH) {
             if (Number(amount_paid) < totalAmount) {
-                throw new Error(`Uang dibayarkan kurang!`);
+                throw new Error(`Uang dibayarkan (${amount_paid}) kurang dari total (${totalAmount})!`);
             }
             changeAmount = Number(amount_paid) - totalAmount;
-
-            // Jika cash, status bisa langsung completed (opsional, tergantung kebijakanmu)
-            // await order.update({ order_status: 'completed' }, { transaction: t });
         }
 
         await order.update({
@@ -93,17 +95,28 @@ const createOrder = async (req, res) => {
             midtrans_paid_token: ''
         };
 
-        // NORMALISASI CEK: Midtrans
-        // Kita cek apakah payment_method mengandung kata 'midtrans'
         if (payment_method === 'midtrans_online' || payment_method === PAYMENT_METHODS.MIDTRANS_ONLINE) {
             const snapResponse = await createSnapTransaction(order, {
                 name: customer_name,
                 whatsapp: customer_whatsapp
             }, midtransItems);
 
+            console.log("Snap response: " + snapResponse);
+
+
             if (snapResponse && snapResponse.token) {
                 paymentData.midtrans_paid_token = snapResponse.token;
                 paymentData.midtrans_id = orderNumber;
+
+                const payment = await Payment.create(paymentData, { transaction: t });
+
+                await t.commit();
+
+                return successResponse(res, 'Pesanan berhasil dibuat', {
+                    order: order,
+                    snap_token: snapResponse ? snapResponse.token : null,
+                    redirect_url: snapResponse ? snapResponse.redirect_url : null
+                }, 201);
             } else {
                 throw new Error("Gagal mendapatkan token dari Midtrans");
             }
@@ -114,17 +127,15 @@ const createOrder = async (req, res) => {
         await t.commit();
 
         return successResponse(res, 'Pesanan berhasil dibuat', {
-            order: {
-                ...order.toJSON(),
-                total_amount: totalAmount,
-                change_amount: changeAmount
-            },
-            payment_token: payment.midtrans_paid_token,
-            redirect_url: payment.midtrans_paid_token ? `https://app.sandbox.midtrans.com/snap/v2/vtweb/${payment.midtrans_paid_token}` : null
+            order: order,
+            snap_token: snapResponse ? snapResponse.token : null,
+            redirect_url: snapResponse ? snapResponse.redirect_url : null
         }, 201);
 
     } catch (error) {
-        if (t) await t.rollback();
+        if (t && !t.finished) {
+            await t.rollback();
+        }
         console.error("CREATE ORDER ERROR:", error);
         return errorResponse(res, error.message);
     }

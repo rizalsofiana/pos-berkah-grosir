@@ -11,20 +11,19 @@ const createSnapTransaction = async (order, customerDetails, itemDetails) => {
                 first_name: customerDetails.name,
                 phone: customerDetails.whatsapp,
             },
-            item_details: itemDetails.map(item => ({
-                id: item.product_id,
-                price: Math.round(item.price_per_unit),
-                quantity: item.qty,
-                name: item.product_name,
-            })),
+            item_details: itemDetails,
             usage_limit: 1
         };
 
+        console.log("Payload ke Midtrans:", JSON.stringify(parameter, null, 2));
+
         const transaction = await midtrans.snap.createTransaction(parameter);
+        console.log(transaction);
         return transaction;
     } catch (error) {
-        console.error('Midtrans Service Error:', error);
-        throw error;
+        const errorMessage = error.ApiResponse ? JSON.stringify(error.ApiResponse) : error.message;
+        console.error('Midtrans Service Error Detail:', errorMessage);
+        throw new Error(errorMessage);
     }
 };
 
