@@ -3,6 +3,8 @@ import { useAuth } from './hooks/useAuth';
 import LoginPage from './pages/LoginPage';
 import CategoryPage from './pages/CategoryPage';
 import ProductPage from './pages/ProductPage';
+import OrderPage from './pages/OrderPage';
+import OrderHistoryPage from './pages/OrderHistoryPage';
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -64,6 +66,24 @@ function App() {
           element={
             <ProtectedRoute>
               <ProductPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute>
+              <OrderPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/history-orders"
+          element={
+            <ProtectedRoute>
+              <OrderHistoryPage />
             </ProtectedRoute>
           }
         />

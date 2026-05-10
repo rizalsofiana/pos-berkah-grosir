@@ -57,6 +57,14 @@ export default function ProductPage() {
         });
     };
 
+    const handleSetDefault = (index) => {
+        const newUnits = formData.units.map((unit, i) => ({
+            ...unit,
+            is_default_selling: i === index 
+        }));
+        setFormData({ ...formData, units: newUnits });
+    };
+
     const removeUomRow = (index) => {
         const newUnits = formData.units.filter((_, i) => i !== index);
         setFormData({ ...formData, units: newUnits });
@@ -223,29 +231,49 @@ export default function ProductPage() {
                                     <button type="button" onClick={addUomRow} className="text-blue-600 text-xs font-bold">+ Tambah Satuan</button>
                                 </div>
                                 {formData.units.map((uom, index) => (
-                                    <div key={index} className="flex gap-2">
+                                    <div key={index} className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl mb-2">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <label className="text-[10px] text-slate-400 mb-1">Default</label>
+                                            <input
+                                                type="radio"
+                                                name="default_selling"
+                                                checked={uom.is_default_selling}
+                                                onChange={() => handleSetDefault(index)}
+                                                className="w-5 h-5 accent-blue-600 cursor-pointer"
+                                            />
+                                        </div>
+
                                         <input
                                             placeholder="Satuan (Dus/Pcs)"
-                                            className="flex-2 px-4 py-2 bg-slate-50 rounded-xl outline-none border border-slate-100"
-                                            onChange={(e) => handleUomChange(index, 'unit_name', e.target.value)} // Gunakan 'unit_name'
+                                            className="flex-1 px-3 py-2 bg-white rounded-lg outline-none border border-slate-200"
+                                            onChange={(e) => handleUomChange(index, 'unit_name', e.target.value)}
                                             required
                                         />
+
                                         <input
                                             type="number"
                                             placeholder="Isi"
-                                            className="flex-1 px-4 py-2 bg-slate-50 rounded-xl outline-none border border-slate-100"
-                                            onChange={(e) => handleUomChange(index, 'conversion_factor', parseInt(e.target.value))}
+                                            className="w-30 px-3 py-2 bg-white rounded-lg outline-none border border-slate-200"
+                                            onChange={(e) => handleUomChange(index, 'conversion_factor', e.target.value)}
                                             required
                                         />
+
                                         <input
                                             type="number"
                                             placeholder="Harga Jual"
-                                            className="flex-[1.5] px-4 py-2 bg-slate-50 rounded-xl outline-none border border-slate-100 font-bold text-blue-600"
-                                            onChange={(e) => handleUomChange(index, 'price', parseInt(e.target.value))}
+                                            className="flex-1 px-3 py-2 bg-white rounded-lg outline-none border border-slate-200 font-bold text-blue-600"
+                                            onChange={(e) => handleUomChange(index, 'price', e.target.value)}
                                             required
                                         />
+
                                         {formData.units.length > 1 && (
-                                            <button type="button" onClick={() => removeUomRow(index)} className="p-2 text-red-300">✕</button>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeUomRow(index)}
+                                                className="text-red-400 hover:text-red-600"
+                                            >
+                                                ✕
+                                            </button>
                                         )}
                                     </div>
                                 ))}
