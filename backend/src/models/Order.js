@@ -10,6 +10,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false
         },
         total_amount: { type: DataTypes.DECIMAL(15, 2), allowNull: false },
+        change_amount: { type: DataTypes.DECIMAL(15, 2), allowNull: true },
         created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
     }, { tableName: 'orders', timestamps: false });
 
