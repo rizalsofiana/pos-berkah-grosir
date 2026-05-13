@@ -7,7 +7,7 @@ const generateInvoiceNumber = (lastNumber = 0) => {
     const dateString = `${year}${month}${day}`;
     const increment = String(lastNumber + 1).padStart(4, '0');
 
-    return `GRS/${dateString}/${increment}`;
+    return `GRS-${dateString}-${increment}`;
 };
 
 module.exports = { generateInvoiceNumber };

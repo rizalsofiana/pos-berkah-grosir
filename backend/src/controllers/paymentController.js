@@ -1,10 +1,10 @@
-const { Order, Payment, db } = require('../models');
+const { Order, Payment, sequelize } = require('../models');
 const { updateStock } = require('../services/stockService');
 const { ORDER_STATUS, PAYMENT_STATUS } = require('../constants');
 const { getTransactionStatus } = require('../services/midtransService');
 
 const handleMidtransNotification = async (req, res) => {
-    const t = await db.transaction();
+    const t = await sequelize.transaction();
     try {
         const statusResponse = await getTransactionStatus(req.body.order_id);
 

@@ -39,10 +39,9 @@ const createOrder = async (req, res) => {
 
             if (!product || !unit) throw new Error(`Produk atau Satuan tidak valid`);
 
-            // 1. Pastikan harga dan qty adalah angka bulat/integer untuk Midtrans
             const itemPrice = Math.round(Number(item.price_per_unit));
             const itemQty = Number(item.qty);
-            const subTotal = itemPrice * itemQty; // Hitung ulang berdasarkan harga yang sudah dibulatkan
+            const subTotal = itemPrice * itemQty;
 
             const totalPcs = itemQty * unit.conversion_factor;
 
