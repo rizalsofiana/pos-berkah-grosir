@@ -68,9 +68,6 @@ const createOrder = async (req, res) => {
             totalAmount += subTotal;
         }
 
-        console.log("Midtrans items:", JSON.stringify(midtransItems, null, 2));
-        console.log("Total amount:", totalAmount);
-
         let changeAmount = 0;
         if (payment_method === 'cash' || payment_method === PAYMENT_METHODS.CASH) {
             if (Number(amount_paid) < totalAmount) {
@@ -126,9 +123,7 @@ const createOrder = async (req, res) => {
         await t.commit();
 
         return successResponse(res, 'Pesanan berhasil dibuat', {
-            order: order,
-            snap_token: snapResponse ? snapResponse.token : null,
-            redirect_url: snapResponse ? snapResponse.redirect_url : null
+            order: order
         }, 201);
 
     } catch (error) {

@@ -126,15 +126,28 @@ const updateProduct = async (req, res) => {
     try {
         const product = await Product.findByPk(req.params.id);
         if (!product) {
-            await t.rollback();
+            if (t) await t.rollback();
             return errorResponse(res, 'Produk tidak ditemukan', 404);
         }
 
-        const { name, description, base_price, min_stock_limit, category_id } = req.body;
+        const {
+            name, description, base_price, min_stock_limit,
+            category_id, stock_adjustment
+        } = req.body;
+
+        // Hitung stok baru: stok lama + adjustment (bisa positif atau negatif)
+        const newStock = product.current_stock_in_pcs + (Number(stock_adjustment) || 0);
 
         await product.update({
-            name, description, base_price, min_stock_limit, category_id
+            name,
+            description,
+            base_price,
+            min_stock_limit,
+            category_id,
+            current_stock_in_pcs: newStock
         }, { transaction: t });
+
+        // Note: Jika kamu juga ingin mengupdate ProductUnits, tambahkan logikanya di sini
 
         await t.commit();
         return successResponse(res, 'Produk berhasil diperbarui', product);
