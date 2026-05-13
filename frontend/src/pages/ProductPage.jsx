@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { getProducts, deleteProduct, createProduct } from '../api/productService';
+import { getProducts, deleteProduct, createProduct, updateProduct } from '../api/productService';
 import { getCategories } from '../api/categoryService';
 
 export default function ProductPage() {
@@ -8,6 +8,9 @@ export default function ProductPage() {
     const [isFetching, setIsFetching] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const isMounted = useRef(true);
+    const [isEdit, setIsEdit] = useState(false);
+    const [selectedId, setSelectedId] = useState(null);
+    const [stockAdjustment, setStockAdjustment] = useState(0);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -60,7 +63,7 @@ export default function ProductPage() {
     const handleSetDefault = (index) => {
         const newUnits = formData.units.map((unit, i) => ({
             ...unit,
-            is_default_selling: i === index 
+            is_default_selling: i === index
         }));
         setFormData({ ...formData, units: newUnits });
     };
@@ -76,6 +79,28 @@ export default function ProductPage() {
         setFormData({ ...formData, units: newUnits });
     };
 
+    const handleEdit = (prod) => {
+        setIsEdit(true);
+        setSelectedId(prod.id);
+        setStockAdjustment(0); // Reset adjustment
+        setFormData({
+            name: prod.name,
+            sku: prod.sku,
+            category_id: prod.category_id,
+            description: prod.description,
+            base_price: prod.base_price,
+            current_stock_in_pcs: prod.current_stock_in_pcs,
+            min_stock_limit: prod.min_stock_limit,
+            units: prod.ProductUnits?.map(u => ({
+                unit_name: u.unit_name,
+                conversion_factor: u.conversion_factor,
+                price: u.ProductPrices?.[0]?.price || 0,
+                is_default_selling: u.is_default_selling
+            })) || []
+        });
+        setShowModal(true);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -85,6 +110,7 @@ export default function ProductPage() {
                 base_price: Number(formData.base_price),
                 current_stock_in_pcs: Number(formData.current_stock_in_pcs),
                 min_stock_limit: Number(formData.min_stock_limit),
+                stock_adjustment: Number(stockAdjustment),
                 units: formData.units.map(u => ({
                     unit_name: u.unit_name, // Pastikan nama field ini string
                     conversion_factor: Number(u.conversion_factor),
@@ -93,8 +119,14 @@ export default function ProductPage() {
                 }))
             };
 
-            await createProduct(payload);
+            if (isEdit) {
+                await updateProduct(selectedId, payload);
+            } else {
+                await createProduct(payload);
+            }
+
             setShowModal(false);
+            setIsEdit(false);
 
             // Reset form dengan field yang lengkap
             setFormData({
@@ -104,7 +136,7 @@ export default function ProductPage() {
             });
             fetchData();
         } catch (err) {
-            alert("Gagal simpan produk. Periksa log di console.");
+            alert("Gagal memproses produk. Periksa log di console.");
             console.log(err);
         }
     };
@@ -150,7 +182,16 @@ export default function ProductPage() {
                                         <div className="text-xs text-slate-400">{prod.sku} | Stok: {prod.current_stock_in_pcs} Pcs</div>
                                     </td>
                                     <td className="px-8 py-5 text-sm text-slate-500 font-medium">{prod.Category?.name}</td>
-                                    <td className="px-8 py-5 text-right">
+                                    <td className="px-8 py-5 text-right flex justify-end gap-2">
+                                        <button
+                                            onClick={() => handleEdit(prod)}
+                                            className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-all"
+                                            title="Edit Produk"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </button>
                                         <button
                                             onClick={() => handleDelete(prod.id)}
                                             className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90"
@@ -180,12 +221,14 @@ export default function ProductPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <input
                                     placeholder="Nama Produk"
+                                    value={isEdit ? formData.name : ''}
                                     className="w-full px-4 py-3 bg-blue-50/50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-200"
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     required
                                 />
                                 <input
                                     placeholder="SKU"
+                                    value={isEdit ? formData.sku : ''}
                                     className="w-full px-4 py-3 bg-blue-50/50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-200"
                                     onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                                     required
@@ -194,6 +237,7 @@ export default function ProductPage() {
 
                             <textarea
                                 placeholder="Deskripsi Produk"
+                                value={isEdit ? formData.description : ''}
                                 className="w-full px-4 py-3 bg-blue-50/50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-200 min-h-20"
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 required
@@ -202,6 +246,7 @@ export default function ProductPage() {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <select
                                     className="w-full px-4 py-3 bg-blue-50/50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-200"
+                                    value={isEdit ? formData.category_id : ''}
                                     onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                                     required
                                 >
@@ -212,16 +257,31 @@ export default function ProductPage() {
                                     type="number"
                                     placeholder="Harga Modal"
                                     className="w-full px-4 py-3 bg-blue-50/50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-200"
+                                    value={isEdit ? formData.base_price : ''}
                                     onChange={(e) => setFormData({ ...formData, base_price: e.target.value })}
                                     required
                                 />
-                                <input
-                                    type="number"
-                                    placeholder="Stok Awal (Pcs)"
-                                    className="w-full px-4 py-3 bg-blue-50/50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-200"
-                                    onChange={(e) => setFormData({ ...formData, current_stock_in_pcs: e.target.value })}
-                                    required
-                                />
+                                {isEdit ? (
+                                    <div className="flex flex-col">
+                                        <label className="text-[10px] text-blue-500 font-bold ml-2 mb-1 uppercase">Penyesuaian Stok (Pcs)</label>
+                                        <input
+                                            type="number"
+                                            placeholder="Contoh: 10 atau -5"
+                                            className="w-full px-4 py-3 bg-orange-50 border border-orange-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-200"
+                                            value={stockAdjustment ? stockAdjustment : ''}
+                                            onChange={(e) => setStockAdjustment(e.target.value)}
+                                        />
+                                        <p className="text-[10px] text-slate-400 mt-1 ml-2">Stok saat ini: {formData.current_stock_in_pcs}</p>
+                                    </div>
+                                ) : (
+                                    <input
+                                        type="number"
+                                        placeholder="Stok Awal (Pcs)"
+                                        className="w-full px-4 py-3 bg-blue-50/50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-200"
+                                        onChange={(e) => setFormData({ ...formData, current_stock_in_pcs: e.target.value })}
+                                        required
+                                    />
+                                )}
                             </div>
 
                             {/* UOM Section */}
@@ -245,6 +305,7 @@ export default function ProductPage() {
 
                                         <input
                                             placeholder="Satuan (Dus/Pcs)"
+                                            value={isEdit ? formData.units[index]?.unit_name : ''}
                                             className="flex-1 px-3 py-2 bg-white rounded-lg outline-none border border-slate-200"
                                             onChange={(e) => handleUomChange(index, 'unit_name', e.target.value)}
                                             required
@@ -253,6 +314,7 @@ export default function ProductPage() {
                                         <input
                                             type="number"
                                             placeholder="Isi"
+                                            value={isEdit ? formData.units[index]?.conversion_factor : ''}
                                             className="w-30 px-3 py-2 bg-white rounded-lg outline-none border border-slate-200"
                                             onChange={(e) => handleUomChange(index, 'conversion_factor', e.target.value)}
                                             required
@@ -261,6 +323,7 @@ export default function ProductPage() {
                                         <input
                                             type="number"
                                             placeholder="Harga Jual"
+                                            value={isEdit ? formData.units[index]?.price : ''}
                                             className="flex-1 px-3 py-2 bg-white rounded-lg outline-none border border-slate-200 font-bold text-blue-600"
                                             onChange={(e) => handleUomChange(index, 'price', e.target.value)}
                                             required

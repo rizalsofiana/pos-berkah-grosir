@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { getProducts } from '../api/productService'; // Pastikan path benar
-import { createOrder } from '../api/orderService';   // Pastikan path benar
+import { getProducts } from '../api/productService';
+import { createOrder } from '../api/orderService';
+import { useReactToPrint } from 'react-to-print';
+import ReceiptPrint from '../components/ReceiptPrint';
 
 export default function OrderPage() {
     // --- States ---
@@ -9,6 +11,9 @@ export default function OrderPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isFetching, setIsFetching] = useState(true);
     const isMounted = useRef(true);
+    const [showReceiptModal, setShowReceiptModal] = useState(false);
+    const [lastOrderData, setLastOrderData] = useState(null);
+    const componentRef = useRef();
 
     const [customerData, setCustomerData] = useState({
         customer_name: '',
@@ -17,6 +22,31 @@ export default function OrderPage() {
         payment_method: 'cash',
         amount_paid: ''
     });
+
+    const finalizeOrder = (response) => {
+        const result = response.data || response;
+
+        // Kita gabungkan data dari API dengan data cart untuk keperluan cetak struk
+        const dataForReceipt = {
+            ...result.order,
+            items: cart, // Kita gunakan item dari cart agar mendapatkan 'name' produk
+            amount_paid: customerData.amount_paid,
+            change_amount: customerData.payment_method === 'cash' ? (Number(customerData.amount_paid) - result.order.total_amount) : 0
+        };
+
+        setLastOrderData(dataForReceipt);
+        setShowReceiptModal(true); // Munculkan Modal Struk
+
+        // Reset Form & Keranjang
+        setCart([]);
+        setCustomerData({
+            customer_name: '',
+            customer_whatsapp: '',
+            fulfillment_method: 'pickup',
+            payment_method: 'cash',
+            amount_paid: ''
+        });
+    };
 
     // --- Fetch Data Logic (Sesuai pola ProductPage) ---
     const fetchData = useCallback(async () => {
@@ -123,20 +153,6 @@ export default function OrderPage() {
 
             const response = await createOrder(payload);
 
-            // Reset State
-            const finalizeOrder = () => {
-                setCart([]);
-                setCustomerData({
-                    name: '',
-                    whatsapp: '',
-                    fulfillment_method: 'pickup',
-                    payment_method: 'cash',
-                    amount_paid: 0
-                });
-                // Arahkan ke riwayat pesanan
-                window.location.href = '/history-orders';
-            };
-
             // LOGIKA PEMBAYARAN MIDTRANS
             const result = response.data || response;
             const token = result.snap_token || result.payment_token;
@@ -144,20 +160,27 @@ export default function OrderPage() {
             if (customerData.payment_method === 'midtrans_online') {
                 if (token) {
                     window.snap.pay(token, {
-                        onSuccess: (result) => { alert("Pembayaran Berhasil!"); finalizeOrder(); },
-                        onPending: (result) => { alert("Menunggu Pembayaran..."); finalizeOrder(); },
-                        onError: (result) => { alert("Pembayaran Gagal!"); },
-                        onClose: () => { alert('Anda menutup pop-up.'); }
+                        onSuccess: () => finalizeOrder(response),
+                        onPending: () => finalizeOrder(response),
+                        onError: () => alert("Pembayaran Gagal!"),
+                        onClose: () => alert('Anda menutup pop-up.')
                     });
                 } else {
-                    alert("Error: Snap Token tidak ditemukan dalam response server.");
+                    alert("Error: Token Midtrans tidak ditemukan.");
                 }
+            } else {
+                finalizeOrder(response);
             }
         } catch (err) {
             console.error(err);
             alert("Terjadi kesalahan saat memproses order.");
         }
     };
+
+    const handlePrint = useReactToPrint({
+        contentRef: componentRef,
+        documentTitle: `Struk-${lastOrderData?.order_number}`,
+    });
 
     // --- Render ---
     return (
@@ -308,6 +331,43 @@ export default function OrderPage() {
                         </button>
                     </form>
                 </div>
+            </div>
+
+            {showReceiptModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-999 p-4">
+                    <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-sm w-full">
+                        <div className="text-center mb-4">
+                            <div className="bg-green-100 text-green-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold">✓</div>
+                            <h2 className="text-xl font-bold">Pesanan Sukses</h2>
+                            <p className="text-slate-500 text-sm">Transaksi telah berhasil dicatat</p>
+                        </div>
+
+                        {/* Preview Struk Mini */}
+                        <div className="border border-slate-200 rounded-2xl p-2 bg-slate-50 max-h-60 overflow-y-auto mb-6">
+                            <ReceiptPrint ref={componentRef} orderData={lastOrderData} />
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <button
+                                onClick={handlePrint}
+                                className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-all"
+                            >
+                                Cetak Struk
+                            </button>
+                            <button
+                                onClick={() => setShowReceiptModal(false)}
+                                className="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 transition-all"
+                            >
+                                Selesai
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Elemen tersembunyi khusus untuk mesin cetak */}
+            <div style={{ display: "none" }}>
+                <ReceiptPrint ref={componentRef} orderData={lastOrderData} />
             </div>
         </div>
     );
