@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { getCategories, createCategory, deleteCategory } from '../api/categoryService';
+import { getCategories, createCategory, deleteCategory, updateCategory } from '../api/categoryService';
 
 export default function CategoryPage() {
     const [categories, setCategories] = useState([]);
@@ -7,11 +7,16 @@ export default function CategoryPage() {
     const [loading, setLoading] = useState(false);
     const [isFetching, setIsFetching] = useState(true);
     const isMounted = useRef(true);
+    const [isEdit, setIsEdit] = useState(false);
+    const [selectedId, setSelectedId] = useState(null);
 
     const fetchData = useCallback(async () => {
         try {
             const data = await getCategories();
             if (isMounted.current) setCategories(data);
+
+            console.log(data);
+
         } catch (err) {
             console.error(err);
         } finally {
@@ -33,7 +38,13 @@ export default function CategoryPage() {
         if (!newCategory.trim()) return;
         setLoading(true);
         try {
-            await createCategory(newCategory);
+            if (isEdit) {
+                await updateCategory(selectedId, { name: newCategory });
+                setIsEdit(false);
+                setSelectedId(null);
+            } else {
+                await createCategory(newCategory);
+            }
             setNewCategory('');
             await fetchData();
         } catch (err) {
@@ -43,6 +54,12 @@ export default function CategoryPage() {
             setLoading(false);
         }
     };
+
+    const handleEdit = (cat) => {
+        setSelectedId(cat.id);
+        setNewCategory(cat.name);
+        setIsEdit(true);
+    }
 
     const handleDelete = async (id) => {
         if (window.confirm('Hapus kategori ini?')) {
@@ -92,13 +109,25 @@ export default function CategoryPage() {
                                         disabled={loading}
                                     />
                                 </div>
-                                <button
-                                    type="submit"
-                                    disabled={loading || !newCategory.trim()}
-                                    className="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.97] transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
-                                >
-                                    {loading ? 'Memproses...' : 'Simpan Kategori'}
-                                </button>
+
+                                {isEdit ? (
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="w-full bg-yellow-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-green-200 hover:bg-green-700 active:scale-[0.97] transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
+                                    >
+                                        {loading ? 'Memproses...' : 'Perbarui Kategori'}
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.97] transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
+                                    >
+                                        {loading ? 'Memproses...' : 'Simpan Kategori'}
+                                    </button>
+                                )}
+
                             </form>
                         </div>
                     </aside>
@@ -141,6 +170,18 @@ export default function CategoryPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-5 text-right">
+                                                    <button
+                                                        onClick={() => {
+                                                            handleEdit(cat);
+                                                            setIsEdit(true);
+                                                        }}
+                                                        className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-all"
+                                                        title="Edit Kategori"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                        </svg>
+                                                    </button>
                                                     <button
                                                         onClick={() => handleDelete(cat.id)}
                                                         className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90"
