@@ -63,7 +63,7 @@ export default function OrderPage() {
             qty: 1,
             price_per_unit: price,
             sub_total: price,
-            available_units: product.ProductUnits // Referensi untuk dropdown
+            available_units: product.ProductUnits
         };
 
         setCart([...cart, newItem]);
@@ -140,9 +140,6 @@ export default function OrderPage() {
             // LOGIKA PEMBAYARAN MIDTRANS
             const result = response.data || response;
             const token = result.snap_token || result.payment_token;
-            console.log(result);
-
-            console.log("Token yang akan digunakan Snap:", token);
 
             if (customerData.payment_method === 'midtrans_online') {
                 if (token) {
