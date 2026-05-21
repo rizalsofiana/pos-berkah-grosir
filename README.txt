@@ -136,50 +136,69 @@ src/
 ├── utils/        # Formatter Rupiah, Tanggal
 └── App.jsx
 
-<layout xmlns: android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+import androidx.appcompat.app.AppCompatActivity
 
-<androidx.constraintlayout.widget.ConstraintLayout
+import android.os.Bundle
 
-android:layout_width="match_parent"
+import android.view.LayoutInflater
 
-android:layout_height="wrap_content"
+import android.view.View
 
-android:padding="16dp">
+import android.view.ViewGroup
 
-<TextView
+import android.widget.TextView
 
-android:id="@+id/text_view"
+import androidx.recyclerview.widget.LinearLayoutManager
 
-android:layout_width="0dp"
+import androidx.recyclerview.widget.RecyclerView
 
-android:layout_height="wrap_content"
+class MainActivity : AppCompatActivity()
 
-android:textSize="16sp"
+{
 
-app:layout_constraintEnd_toEnd0f="parent"
+private lateinit var recyclerView: RecyclerView
 
-app:layout_constraintStart_toStart0f="parent"
+private lateinit var adapter: MyAdapter
 
-app:layout_constraintTop_toTop0f="parent" />
+private lateinit var layoutManager: LinearLayoutManager
 
-<TextView
+override fun onCreate (savedInstanceState: Bundle?) { super.onCreate(savedInstanceState) setContentview(R.layout.activity_main)
 
-android:id="@+id/text_view2"
+// Inisialisasi RecyclerView recyclerView = findviewById(R.id.recycler_view)
 
-android:layout_width="Odp"
+// Inisialisasi LayoutManager layoutManager = LinearLayoutManager(this) recyclerView.layoutManager = layoutManager
 
-android:layout_height="wrap_content"
+// Inisialisasi Adapter
 
-android:textSize="14sp"
+adapter = MyAdapter(getData())
 
-app:layout_constraintEnd_toEndOf="parent"
+recyclerView.adapter = adapter
+}
 
-app:layout_constraintStart_toStart0f="parent"
+private fun getData(): ArrayList<Data>
 
-app:layout_constraintTop_toBottomOf="@id/text_view"
+val data = ArrayList<Data>()
 
-/>
+data.add(Data("Item 1", "Deskripsi Item 1")) data.add(Data("Item 2", "Deskripsi Item 2")) data.add(Data("Item 3", "Deskripsi Item 3")) return data
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+2
 
-</lavout>
+inner class MyAdapter(val data: ArrayList<Data>): RecyclerView.Adapter<MyAdapter.ViewHolder>() {
+
+override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): return ViewHolder(LayoutInflater.from(parent.context) .inflate(R.layout.item_layout, parent, false))
+
+override fun onBindViewHolder(holder: ViewHolder, position: Int) { holder.bind(data[position])
+
+override fun getItemCount(): Int {
+
+return data.size
+
+inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(ite
+
+fun bind(data: Data) { val textView = itemView.findViewById<TextView>(R.id.text_vie textView.text = data.title val textView2 = itemView.findViewById<TextView>(R.id.text_vi
+
+textView2.text = data.description
+
+data class Data(val title: String, val description: String)
+
+}
