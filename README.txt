@@ -135,3 +135,51 @@ src/
 ├── pages/        # Halaman Utama (Login, Dashboard, Catalog)
 ├── utils/        # Formatter Rupiah, Tanggal
 └── App.jsx
+
+<layout xmlns: android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+
+<androidx.constraintlayout.widget.ConstraintLayout
+
+android:layout_width="match_parent"
+
+android:layout_height="wrap_content"
+
+android:padding="16dp">
+
+<TextView
+
+android:id="@+id/text_view"
+
+android:layout_width="0dp"
+
+android:layout_height="wrap_content"
+
+android:textSize="16sp"
+
+app:layout_constraintEnd_toEnd0f="parent"
+
+app:layout_constraintStart_toStart0f="parent"
+
+app:layout_constraintTop_toTop0f="parent" />
+
+<TextView
+
+android:id="@+id/text_view2"
+
+android:layout_width="Odp"
+
+android:layout_height="wrap_content"
+
+android:textSize="14sp"
+
+app:layout_constraintEnd_toEndOf="parent"
+
+app:layout_constraintStart_toStart0f="parent"
+
+app:layout_constraintTop_toBottomOf="@id/text_view"
+
+/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+</lavout>
